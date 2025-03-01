@@ -1,100 +1,101 @@
-# v4-template
-### **A template for writing Uniswap v4 Hooks 🦄**
+# Uniswap V4 Hook Implementation
 
-[`Use this Template`](https://github.com/uniswapfoundation/v4-template/generate)
+This repository contains an implementation of custom hooks for Uniswap V4 on Base. The hooks are designed to track swap metrics and provide additional liquidity management functionality.
 
-1. The example hook [Counter.sol](src/Counter.sol) demonstrates the `beforeSwap()` and `afterSwap()` hooks
-2. The test template [Counter.t.sol](test/Counter.t.sol) preconfigures the v4 pool manager, test tokens, and test liquidity.
+## Overview
 
-<details>
-<summary>Updating to v4-template:latest</summary>
+This project demonstrates the implementation of Uniswap V4 hooks, specifically:
 
-This template is actively maintained -- you can update the v4 dependencies, scripts, and helpers: 
+- A `SwapHook` that tracks swap counts before and after swaps
+- Deployment scripts for deterministic CREATE2 deployments
+- Hook verification tools
+- Pool ID calculation utilities
+
+## Project Structure
+
+- `src/` - Contains the hook implementation contracts
+  - `SwapHook.sol` - Main hook implementation
+  - `CounterHook.sol` - An example hook that counts various operations
+- `script/` - Contains deployment and verification scripts
+  - `DeployHook.s.sol` - Deploys the hook using CREATE2 for deterministic addresses
+  - `VerifyHook.s.sol` - Helps verify the hook contract on Basescan
+  - `GetPoolId.s.sol` - Utility to calculate pool IDs
+
+## Prerequisites
+
+- [Foundry](https://book.getfoundry.sh/) for development, testing, and deployment
+- A wallet with ETH on Base
+- Base RPC URL
+
+## Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/YOUR_USERNAME/v4-Working.git
+   cd v4-Working
+   ```
+
+2. Install dependencies:
+   ```
+   forge install
+   ```
+
+## Deployment
+
+To deploy the hook, run:
+
 ```bash
-git remote add template https://github.com/uniswapfoundation/v4-template
-git fetch template
-git merge template/main <BRANCH> --allow-unrelated-histories
+# Set your private key as an environment variable
+export PRIVATE_KEY=your_private_key
+
+# Deploy to Base mainnet
+forge script script/DeployHook.s.sol:Deployhook --rpc-url https://mainnet.base.org --broadcast --verify
 ```
 
-</details>
+The deployment script:
+1. Uses the CREATE2 factory at `0x0000000000FFe8B47B3e2130213B802212439497`
+2. Mines for an address that includes the required hook flags
+3. Deploys the hook contract deterministically with specific permissions
 
----
+## Hook Verification
 
-### Check Forge Installation
-*Ensure that you have correctly installed Foundry (Forge) Stable. You can update Foundry by running:*
-
-```
-foundryup
-```
-
-> *v4-template* appears to be _incompatible_ with Foundry Nightly. See [foundry announcements](https://book.getfoundry.sh/announcements) to revert back to the stable build
-
-
-
-## Set up
-
-*requires [foundry](https://book.getfoundry.sh)*
-
-```
-forge install
-forge test
-```
-
-### Local Development (Anvil)
-
-Other than writing unit tests (recommended!), you can only deploy & test hooks on [anvil](https://book.getfoundry.sh/anvil/)
+After deployment, verify the hook contract on Basescan:
 
 ```bash
-# start anvil, a local EVM chain
-anvil
+# Set your Base API key
+export BASE_API_KEY=your_base_api_key
 
-# in a new terminal
-forge script script/Anvil.s.sol \
-    --rpc-url http://localhost:8545 \
-    --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
-    --broadcast
+# Run the verification script
+forge script script/VerifyHook.s.sol:VerifyHook --rpc-url https://mainnet.base.org
 ```
 
-See [script/](script/) for hook deployment, pool creation, liquidity provision, and swapping.
+Make sure to update the contract address in `VerifyHook.s.sol` to match your deployed hook.
 
----
+## Getting Pool IDs
 
-<details>
-<summary><h2>Troubleshooting</h2></summary>
+To calculate the Pool ID for a specific pool configuration:
 
+```bash
+forge script script/GetPoolId.s.sol:GetPoolId --rpc-url https://mainnet.base.org
+```
 
+## Hook Features
 
-### *Permission Denied*
+The `SwapHook` implements:
+- `beforeSwap` and `afterSwap` hooks that track swap counts for each pool
+- `beforeAddLiquidity` and `beforeRemoveLiquidity` hooks for liquidity management
 
-When installing dependencies with `forge install`, Github may throw a `Permission Denied` error
+## Security Considerations
 
-Typically caused by missing Github SSH keys, and can be resolved by following the steps [here](https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh) 
+- This code is provided as an example and has not undergone a formal security audit
+- Exercise caution when deploying to production environments
+- Test thoroughly on testnets before mainnet deployment
 
-Or [adding the keys to your ssh-agent](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent#adding-your-ssh-key-to-the-ssh-agent), if you have already uploaded SSH keys
+## License
 
-### Hook deployment failures
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-Hook deployment failures are caused by incorrect flags or incorrect salt mining
+## Acknowledgements
 
-1. Verify the flags are in agreement:
-    * `getHookCalls()` returns the correct flags
-    * `flags` provided to `HookMiner.find(...)`
-2. Verify salt mining is correct:
-    * In **forge test**: the *deployer* for: `new Hook{salt: salt}(...)` and `HookMiner.find(deployer, ...)` are the same. This will be `address(this)`. If using `vm.prank`, the deployer will be the pranking address
-    * In **forge script**: the deployer must be the CREATE2 Proxy: `0x4e59b44847b379578588920cA78FbF26c0B4956C`
-        * If anvil does not have the CREATE2 deployer, your foundry may be out of date. You can update it with `foundryup`
-
-</details>
-
----
-
-Additional resources:
-
-[Uniswap v4 docs](https://docs.uniswap.org/contracts/v4/overview)
-
-[v4-periphery](https://github.com/uniswap/v4-periphery) contains advanced hook implementations that serve as a great reference
-
-[v4-core](https://github.com/uniswap/v4-core)
-
-[v4-by-example](https://v4-by-example.org)
-
+- [Uniswap V4 Core](https://github.com/Uniswap/v4-core)
+- [Uniswap V4 Periphery](https://github.com/Uniswap/v4-periphery)
